@@ -96,6 +96,22 @@ st.markdown("""
         border: 2px solid #333;
         background: #fff;
     }
+    .restriction-arrow {
+        display: inline-block;
+        font-size: 1.5rem;
+        color: #e74c3c;
+        margin: 0 4px;
+    }
+    .restriction-note {
+        background: #ffeaea;
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        color: #c0392b;
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-align: center;
+        margin: 0.5rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -106,6 +122,7 @@ CORES = [
     "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6",
     "#1abc9c", "#e91e63", "#ff5722", "#607d8b", "#795548"
 ]
+NOMES_CORES = ["Vermelho", "Azul", "Verde", "Laranja", "Roxo", "Ciano", "Rosa", "Coral", "Cinza", "Marrom"]
 NOMES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
 # ============================================
@@ -191,7 +208,6 @@ def plot_combinacoes_circulo(elementos, combs_list, n_total):
         horizontal_spacing=0.08, vertical_spacing=0.12
     )
 
-    # Posições circulares para os elementos totais
     angles = np.linspace(0, 2*np.pi, n_total, endpoint=False)
     radius = 1
     x_pos = radius * np.cos(angles)
@@ -238,7 +254,6 @@ def plot_arranjo_slots(elementos, arranjo, n_slots):
     """Plota arranjo como preenchimento de slots"""
     fig = go.Figure()
 
-    # Slots
     for i in range(n_slots):
         fig.add_trace(go.Scatter(
             x=[i], y=[0],
@@ -251,7 +266,6 @@ def plot_arranjo_slots(elementos, arranjo, n_slots):
         fig.add_annotation(x=i, y=0, text=f'{i+1}º', showarrow=False,
                           font=dict(size=10, color='#999'))
 
-    # Elementos preenchidos
     for i, elem in enumerate(arranjo):
         cor_idx = elementos.index(elem)
         fig.add_trace(go.Scatter(
@@ -277,11 +291,130 @@ def plot_arranjo_slots(elementos, arranjo, n_slots):
     )
     return fig
 
+def gerar_coloracoes_validas(n_bolas, k_cores, max_exibir=12):
+    """Gera algumas colorações válidas (adjacentes diferentes)"""
+    coloracoes = []
+
+    def backtrack(pos, atual):
+        if pos == n_bolas:
+            coloracoes.append(tuple(atual))
+            return
+        for cor in range(k_cores):
+            if pos == 0 or cor != atual[-1]:
+                atual.append(cor)
+                backtrack(pos + 1, atual)
+                atual.pop()
+
+    backtrack(0, [])
+    return coloracoes
+
+def plot_coloracao_sequencia(cores_indices, n_bolas, k_cores):
+    """Plota uma sequência de bolas coloridas com restrição visual"""
+    fig = go.Figure()
+
+    for i, cor_idx in enumerate(cores_indices):
+        cor = CORES[cor_idx % len(CORES)]
+        nome = NOMES_CORES[cor_idx % len(NOMES_CORES)]
+
+        fig.add_trace(go.Scatter(
+            x=[i], y=[0],
+            mode='markers+text',
+            marker=dict(size=55, color=cor, symbol='circle',
+                       line=dict(width=3, color='#333')),
+            text=[f'B{i+1}'],
+            textfont=dict(size=14, color='white', family='Arial Black'),
+            textposition='middle center',
+            hovertemplate=f'Bola {i+1}<br>Cor: {nome}<extra></extra>',
+            showlegend=False
+        ))
+
+        # Seta de restrição entre bolas adjacentes
+        if i < len(cores_indices) - 1:
+            fig.add_annotation(
+                x=i + 0.5, y=0.05,
+                ax=i + 0.5, ay=0.05,
+                xref='x', yref='y', axref='x', ayref='y',
+                showarrow=True,
+                arrowhead=2, arrowsize=1, arrowwidth=2,
+                arrowcolor='#e74c3c'
+            )
+            fig.add_annotation(
+                x=i + 0.5, y=0.35,
+                text='≠', showarrow=False,
+                font=dict(size=18, color='#e74c3c', family='Arial Black')
+            )
+
+    fig.update_layout(
+        xaxis=dict(range=[-0.5, n_bolas-0.5], showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(range=[-0.5, 0.8], showgrid=False, zeroline=False, showticklabels=False),
+        height=220,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        margin=dict(l=20, r=20, t=30, b=20),
+        title=dict(text=f'Sequência de {n_bolas} bolas — adjacentes com cores diferentes', font=dict(size=14))
+    )
+    return fig
+
+def plot_coloracoes_grid(coloracoes, n_bolas, k_cores, max_cols=6):
+    """Plota grade de colorações válidas"""
+    n = len(coloracoes)
+    cols = min(max_cols, n)
+    rows = math.ceil(n / cols)
+
+    fig = make_subplots(
+        rows=rows, cols=cols,
+        subplot_titles=[f"#{i+1}" for i in range(n)],
+        horizontal_spacing=0.05, vertical_spacing=0.15
+    )
+
+    for idx, coloracao in enumerate(coloracoes):
+        r = idx // cols + 1
+        c = idx % cols + 1
+
+        for pos, cor_idx in enumerate(coloracao):
+            cor = CORES[cor_idx % len(CORES)]
+            fig.add_trace(go.Scatter(
+                x=[pos], y=[0],
+                mode='markers+text',
+                marker=dict(size=30, color=cor, symbol='circle',
+                           line=dict(width=2, color='#333')),
+                text=[str(pos+1)],
+                textfont=dict(size=12, color='white', family='Arial Black'),
+                textposition='middle center',
+                hoverinfo='skip',
+                showlegend=False
+            ), row=r, col=c)
+
+            # Seta de restrição
+            if pos < len(coloracao) - 1:
+                fig.add_annotation(
+                    x=pos + 0.5, y=0, ax=pos + 0.5, ay=0,
+                    xref=f'x{idx+1 if idx > 0 else ""}', yref=f'y{idx+1 if idx > 0 else ""}',
+                    axref=f'x{idx+1 if idx > 0 else ""}', ayref=f'y{idx+1 if idx > 0 else ""}',
+                    showarrow=True, arrowhead=2, arrowsize=0.8, arrowwidth=1.5,
+                    arrowcolor='#e74c3c'
+                )
+
+        fig.update_xaxes(range=[-0.5, n_bolas-0.5], showgrid=False, zeroline=False, 
+                        showticklabels=False, row=r, col=c)
+        fig.update_yaxes(range=[-0.4, 0.4], showgrid=False, zeroline=False, 
+                        showticklabels=False, row=r, col=c)
+
+    fig.update_layout(
+        height=100 * rows + 40,
+        showlegend=False,
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        margin=dict(l=20, r=20, t=40, b=20),
+        title=dict(text=f'Exemplos de colorações válidas', font=dict(size=16))
+    )
+    return fig
+
 # ============================================
 # TÍTULO
 # ============================================
 st.markdown('<div class="main-title">🎲 Análise Combinatória Visual</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Permutação, Arranjo e Combinação de forma concreta e interativa</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Permutação, Arranjo, Combinação e Coloração — de forma concreta e interativa</div>', unsafe_allow_html=True)
 
 # ============================================
 # BARRA LATERAL — CONTROLES GLOBAIS
@@ -292,7 +425,7 @@ with st.sidebar:
 
     conceito = st.radio(
         "📚 Escolha o conceito:",
-        ["Permutação Simples", "Permutação com Repetição", "Arranjo Simples", "Combinação"],
+        ["Permutação Simples", "Permutação com Repetição", "Arranjo Simples", "Combinação", "Coloração com Restrição"],
         index=0
     )
 
@@ -313,7 +446,6 @@ with st.sidebar:
         n_tipo3 = n_total_rep - n_tipo1 - n_tipo2
         st.markdown(f"Tipo 3 (🟢): **{n_tipo3}** objeto(s) — calculado automaticamente")
 
-        # Validar
         if n_tipo3 < 0:
             st.error("A soma dos tipos 1 e 2 não pode ultrapassar o total!")
             n_tipo3 = 0
@@ -338,6 +470,22 @@ with st.sidebar:
         st.markdown("**Objetos disponíveis:**")
         st.markdown(gerar_bolas_html(elementos_comb), unsafe_allow_html=True)
 
+    elif conceito == "Coloração com Restrição":
+        st.markdown("**🎨 Problema:** Temos n bolas em fila. Cada bola será pintada com uma de k cores. Bolas adjacentes (vizinhas) devem ter cores diferentes.")
+        st.markdown("---")
+        n_bolas = st.slider("🔵 Quantidade de bolas (n)", 2, 8, 6)
+        k_cores = st.slider("🎨 Quantidade de cores disponíveis (k)", 2, 6, 4)
+
+        st.markdown("**Cores disponíveis:**")
+        cores_disp = NOMES_CORES[:k_cores]
+        html_cores = '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:10px 0;">'
+        for i in range(k_cores):
+            html_cores += f'<div style="display:inline-flex;align-items:center;gap:6px;margin:3px;padding:4px 10px;border-radius:20px;background:{CORES[i]}22;border:2px solid {CORES[i]};"><div style="width:16px;height:16px;border-radius:50%;background:{CORES[i]};"></div><span style="font-size:0.85rem;font-weight:600;color:#333;">{cores_disp[i]}</span></div>'
+        html_cores += '</div>'
+        st.markdown(html_cores, unsafe_allow_html=True)
+
+        st.markdown(f"**Restrição:** Bola i e Bola i+1 devem ter cores <b>diferentes</b>.", unsafe_allow_html=True)
+
     st.markdown("---")
     st.info("💡 **Dica:** Ajuste os sliders para explorar diferentes cenários. Observe como a ordem importa (ou não) em cada caso!")
 
@@ -359,7 +507,6 @@ if conceito == "Permutação Simples":
     </div>
     """, unsafe_allow_html=True)
 
-    # Fórmula
     resultado = math.factorial(n_perm)
     st.markdown(f"""
     <div class="formula-box">
@@ -367,7 +514,6 @@ if conceito == "Permutação Simples":
     </div>
     """, unsafe_allow_html=True)
 
-    # Visualização
     col1, col2 = st.columns([1, 1])
 
     with col1:
@@ -389,18 +535,16 @@ if conceito == "Permutação Simples":
         </div>
         """, unsafe_allow_html=True)
 
-    # Grade de permutações
     st.markdown("---")
     st.subheader(f"📋 Todas as {resultado} permutações possíveis")
 
-    if resultado <= 120:  # Limitar para não travar
+    if resultado <= 120:
         perms = list(permutations(elementos_perm))
         fig = plot_permutacoes_grid(perms, elementos_perm, max_cols=6)
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning("Muitas permutações para exibir visualmente. Reduza n para ver a grade.")
 
-    # Destaque conceitual
     st.markdown("""
     <div class="step-box">
         <b>💡 Observação importante:</b> Em permutação simples, cada objeto aparece exatamente uma vez em cada fila.
@@ -461,7 +605,6 @@ elif conceito == "Permutação com Repetição":
             </div>
             """, unsafe_allow_html=True)
 
-        # Exemplo comparativo
         st.markdown("---")
         st.subheader("🔍 Comparando: com vs sem repetição")
 
@@ -528,7 +671,6 @@ elif conceito == "Arranjo Simples":
         st.markdown(gerar_slots_html(slots_vazios, k_arr), unsafe_allow_html=True)
         st.markdown(f"<div style='text-align:center;color:#777;'>Escolher <b>{k_arr}</b> em ordem</div>", unsafe_allow_html=True)
 
-    # Explicação passo a passo
     st.markdown("---")
     st.subheader("🧮 Raciocínio passo a passo")
 
@@ -544,13 +686,11 @@ elif conceito == "Arranjo Simples":
     </div>
     """, unsafe_allow_html=True)
 
-    # Visualização de arranjos
     st.markdown("---")
     st.subheader(f"📋 Exemplos de arranjos (A({n_arr},{k_arr}) = {resultado_arr})")
 
     if resultado_arr <= 60:
         arranjos = list(permutations(elementos_arr, k_arr))
-        # Mostrar alguns exemplos
         n_exibir = min(12, len(arranjos))
         cols_por_linha = 3
 
@@ -618,7 +758,6 @@ elif conceito == "Combinação":
         </div>
         """, unsafe_allow_html=True)
 
-    # Visualização das combinações
     st.markdown("---")
     st.subheader(f"📋 Todas as {resultado_comb} combinações possíveis")
 
@@ -629,7 +768,6 @@ elif conceito == "Combinação":
     else:
         st.warning("Muitas combinações para exibir. Reduza n ou k.")
 
-    # Relação com arranjo
     st.markdown("---")
     st.subheader("🔗 Relação: Combinação vs Arranjo")
 
@@ -679,6 +817,196 @@ elif conceito == "Combinação":
     """, unsafe_allow_html=True)
 
 # ============================================
+# 5. COLORAÇÃO COM RESTRIÇÃO
+# ============================================
+elif conceito == "Coloração com Restrição":
+    st.markdown("---")
+    st.header("🎨 Coloração com Restrição de Adjacência")
+
+    st.markdown("""
+    <div class="concept-card" style="border-left-color: #9b59b6;">
+        <b>Problema:</b> Temos <b>n bolas</b> dispostas em fila. Cada bola deve ser pintada com uma de <b>k cores</b> disponíveis.
+        A <b>restrição</b> é que duas bolas adjacentes (vizinhas) <b>não podem ter a mesma cor</b>.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Cálculo
+    total_coloracoes = k_cores * ((k_cores - 1) ** (n_bolas - 1))
+
+    st.markdown(f"""
+    <div class="formula-box">
+        Total = k × (k − 1)^(n−1)<br>
+        = {k_cores} × ({k_cores} − 1)^({n_bolas} − 1)<br>
+        = {k_cores} × {k_cores - 1}^{n_bolas - 1}<br>
+        = {k_cores} × {(k_cores - 1) ** (n_bolas - 1)}<br>
+        = <b>{total_coloracoes}</b> colorações possíveis
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Visualização do raciocínio
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        st.subheader("🔵 As bolas em fila")
+
+        # Bolas numeradas
+        html_bolas = '<div style="display:flex; justify-content:center; align-items:center; gap:8px; margin:15px 0;">'
+        for i in range(n_bolas):
+            html_bolas += f'<div style="width:50px;height:50px;border-radius:50%;background:#ecf0f1;border:3px solid #bdc3c7;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.1rem;color:#555;">{i+1}</div>'
+            if i < n_bolas - 1:
+                html_bolas += '<div style="font-size:1.5rem;color:#e74c3c;font-weight:bold;">≠</div>'
+        html_bolas += '</div>'
+        st.markdown(html_bolas, unsafe_allow_html=True)
+
+        st.markdown("""
+        <div class="restriction-note">
+            ⚠️ Bola i e Bola i+1 devem ter cores DIFERENTES
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.subheader("🧮 Raciocínio passo a passo")
+
+        raciocinio = f"""
+        <div style="font-size:1.05rem;line-height:2;">
+        <b>1ª bola (B₁):</b> pode ser qualquer uma das <b>{k_cores}</b> cores.<br>
+        """
+        for i in range(2, min(n_bolas + 1, 9)):
+            raciocinio += f"<b>{i}ª bola (B<sub>{i}</sub>):</b> não pode ser igual à B<sub>{i-1}</sub>, então tem <b>{k_cores - 1}</b> opções.<br>"
+
+        if n_bolas >= 9:
+            raciocinio += f"...<br><b>{n_bolas}ª bola (B<sub>{n_bolas}</sub>):</b> <b>{k_cores - 1}</b> opções.<br>"
+
+        raciocinio += f"""
+        <br>
+        <b>Total = {k_cores} × {' × '.join([str(k_cores - 1)] * (n_bolas - 1))}</b><br>
+        <b>Total = {k_cores} × {k_cores - 1}^{n_bolas - 1} = {total_coloracoes}</b>
+        </div>
+        """
+        st.markdown(raciocinio, unsafe_allow_html=True)
+
+    # Exemplo de coloração
+    st.markdown("---")
+    st.subheader("🖌️ Exemplo de uma coloração válida")
+
+    # Gerar uma coloração válida aleatória
+    np.random.seed(42)
+    coloracao_exemplo = [np.random.randint(0, k_cores)]
+    for i in range(1, n_bolas):
+        cor_anterior = coloracao_exemplo[-1]
+        opcoes = [c for c in range(k_cores) if c != cor_anterior]
+        coloracao_exemplo.append(np.random.choice(opcoes))
+
+    st.plotly_chart(plot_coloracao_sequencia(coloracao_exemplo, n_bolas, k_cores), use_container_width=True)
+
+    # Explicação da coloração
+    nomes_seq = [NOMES_CORES[c] for c in coloracao_exemplo]
+    st.markdown(f"""
+    <div style="background:#f0f0f0;border-radius:10px;padding:1rem;text-align:center;font-size:1rem;">
+        <b>Sequência de cores:</b> {' → '.join(nomes_seq)}<br>
+        <span style="color:#777;font-size:0.9rem;">Verifique: nenhuma cor adjacente se repete! ✅</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Grade de colorações válidas
+    st.markdown("---")
+    st.subheader(f"📋 Algumas colorações válidas (Total: {total_coloracoes})")
+
+    if total_coloracoes <= 60:
+        coloracoes = gerar_coloracoes_validas(n_bolas, k_cores, max_exibir=12)
+        n_exibir = min(12, len(coloracoes))
+
+        fig = plot_coloracoes_grid(coloracoes[:n_exibir], n_bolas, k_cores, max_cols=4)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info(f"São {total_coloracoes} colorações — muitas para exibir todas. Ajuste n ≤ 5 ou k ≤ 4 para ver exemplos.")
+        # Mostrar só algumas
+        coloracoes = gerar_coloracoes_validas(n_bolas, k_cores, max_exibir=6)
+        if len(coloracoes) > 0:
+            fig = plot_coloracoes_grid(coloracoes[:min(6, len(coloracoes))], n_bolas, k_cores, max_cols=3)
+            st.plotly_chart(fig, use_container_width=True)
+
+    # Casos especiais
+    st.markdown("---")
+    st.subheader("🔍 Casos Especiais e Observações")
+
+    col_obs1, col_obs2 = st.columns(2)
+
+    with col_obs1:
+        st.markdown("""
+        <div class="concept-card" style="border-left-color: #e74c3c;">
+            <div style="font-size:1.1rem;font-weight:700;color:#e74c3c;margin-bottom:0.5rem;">
+                ❌ Quando k = 1
+            </div>
+            <div style="font-size:0.95rem;color:#555;line-height:1.7;">
+                Se há apenas <b>1 cor</b> e n ≥ 2, o resultado é <b>0</b>!<br>
+                Impossível pintar duas bolas adjacentes com cores diferentes se só existe uma cor.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_obs2:
+        st.markdown("""
+        <div class="concept-card" style="border-left-color: #2ecc71;">
+            <div style="font-size:1.1rem;font-weight:700;color:#2ecc71;margin-bottom:0.5rem;">
+                ✅ Quando k ≥ n
+            </div>
+            <div style="font-size:0.95rem;color:#555;line-height:1.7;">
+                Se há <b>mais cores que bolas</b>, sempre é possível.<br>
+                Na verdade, basta que <b>k ≥ 2</b> para qualquer n, pois sempre podemos alternar 2 cores.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Exercício resolvido
+    st.markdown("---")
+    st.subheader("📝 Exercício Resolvido")
+
+    st.markdown(f"""
+    <div style="background:#e8f4ff;border-radius:12px;padding:1.5rem;border:2px solid #3498db;">
+        <div style="font-size:1.1rem;font-weight:700;color:#2c3e50;margin-bottom:1rem;">
+            📌 Problema
+        </div>
+        <div style="font-size:1rem;color:#333;line-height:1.7;margin-bottom:1rem;">
+            Uma escada tem <b>{n_bolas} degraus</b>. Cada degrau deve ser pintado com uma de <b>{k_cores} cores</b> diferentes.
+            Degraus consecutivos não podem ter a mesma cor. De quantas maneiras podemos pintar a escada?
+        </div>
+
+        <div style="font-size:1.1rem;font-weight:700;color:#27ae60;margin-bottom:0.8rem;">
+            ✏️ Resolução
+        </div>
+
+        <div style="font-size:0.95rem;color:#333;line-height:1.8;font-family:'Georgia',serif;">
+            <b>1º degrau:</b> {k_cores} opções de cores.<br>
+            <b>2º degrau em diante:</b> cada um tem {k_cores - 1} opções (não pode ser igual ao anterior).<br><br>
+            Total = {k_cores} × {k_cores - 1}^{n_bolas - 1}<br>
+            Total = {k_cores} × {(k_cores - 1) ** (n_bolas - 1)}<br>
+            Total = <b>{total_coloracoes} maneiras</b>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Relação com outros conceitos
+    st.markdown("---")
+    st.subheader("🔗 Relação com outros conceitos")
+
+    st.markdown("""
+    <div style="font-size:1rem;color:#333;line-height:1.8;">
+        Este problema é um caso de <b>permutação com restrição</b> ou <b>arranjo com repetição restrita</b>.<br><br>
+
+        Se não houvesse a restrição (bolas adjacentes podem ter mesma cor), o total seria simplesmente:<br>
+        <div class="formula-box" style="font-size:1rem;">
+            k^n = {k_cores}^{n_bolas} = {k_cores ** n_bolas} colorações (sem restrição)
+        </div>
+        <br>
+        Com a restrição, eliminamos as colorações inválidas (adjacentes iguais), resultando em:<br>
+        <div class="formula-box" style="font-size:1rem;">
+            k × (k − 1)^(n−1) = {k_cores} × {k_cores - 1}^{n_bolas - 1} = {total_coloracoes} colorações (com restrição)
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# ============================================
 # RODAPÉ COMPARATIVO (sempre visível)
 # ============================================
 st.markdown("---")
@@ -719,6 +1047,12 @@ st.markdown("""
             <td style="padding:10px;border:1px solid #ddd;text-align:center;">❌ Não</td>
             <td style="padding:10px;border:1px solid #ddd;text-align:center;">❌ Não (k ≤ n)</td>
             <td style="padding:10px;border:1px solid #ddd;text-align:center;font-family:monospace;">n!/(k!(n-k)!)</td>
+        </tr>
+        <tr style="background:#f3e5f5;">
+            <td style="padding:10px;border:1px solid #ddd;font-weight:600;">🎨 Coloração c/ Restrição</td>
+            <td style="padding:10px;border:1px solid #ddd;text-align:center;">✅ Sim (posição importa)</td>
+            <td style="padding:10px;border:1px solid #ddd;text-align:center;">❌ Não (repete cores)</td>
+            <td style="padding:10px;border:1px solid #ddd;text-align:center;font-family:monospace;">k×(k−1)^(n−1)</td>
         </tr>
     </tbody>
 </table>
