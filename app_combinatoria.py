@@ -348,6 +348,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ABA 1: PERMUTAÇÃO SIMPLES
 # ============================================
 with tab1:
+    st.markdown(rf"$$ P_{{{n_perm}}} = {n_perm}! = {' \times '.join([str(i) for i in range(n_perm, 0, -1)])} = \mathbf{{{resultado}}} $$")
     st.markdown("""
     <div class="concept-card" style="border-left-color: #3498db;">
         <b>Definição:</b> Permutação simples é o número de maneiras de organizar <b>n objetos distintos</b> em fila.
@@ -385,6 +386,7 @@ with tab1:
         perms = list(permutations(elementos_perm))
         fig = plot_permutacoes_grid(perms, elementos_perm, max_cols=6)
         st.plotly_chart(fig, use_container_width=True)
+
 
 # ============================================
 # ABA 2: PERMUTAÇÃO COM REPETIÇÃO
