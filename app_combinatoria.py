@@ -348,7 +348,6 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ABA 1: PERMUTAÇÃO SIMPLES
 # ============================================
 with tab1:
-    st.markdown(rf"$$ P_{{{n_perm}}} = {n_perm}! = {' \times '.join([str(i) for i in range(n_perm, 0, -1)])} = \mathbf{{{resultado}}} $$")
     st.markdown("""
     <div class="concept-card" style="border-left-color: #3498db;">
         <b>Definição:</b> Permutação simples é o número de maneiras de organizar <b>n objetos distintos</b> em fila.
@@ -369,7 +368,8 @@ with tab1:
     with col_calc:
         resultado = math.factorial(n_perm)
         st.subheader("🧮 Cálculo Matemático")
-        # LaTeX formatado corretamente para permutação
+        
+        # Correção aplicada com 'rf' para renderizar o operador \times sem falhas
         st.markdown(rf"$$ P_{{{n_perm}}} = {n_perm}! = {' \times '.join([str(i) for i in range(n_perm, 0, -1)])} = \mathbf{{{resultado}}} $$")
         
         st.markdown(f"""
