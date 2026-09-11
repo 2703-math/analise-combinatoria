@@ -102,10 +102,10 @@ st.markdown("""
 # ============================================
 CORES = [
     "#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6",
-    "#1abc9c", "#e91e63", "#ff5722", "#607d8b", "#795548"
+    "#1abc9c", "#e91e63", "#ff5722", "#607d8b", "#795548", "#e84393", "#00b894"
 ]
-NOMES_CORES = ["Vermelho", "Azul", "Verde", "Laranja", "Roxo", "Ciano", "Rosa", "Coral", "Cinza", "Marrom"]
-NOMES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+NOMES_CORES = ["Vermelho", "Azul", "Verde", "Laranja", "Roxo", "Ciano", "Rosa", "Coral", "Cinza", "Marrom", "Pink", "Água"]
+NOMES = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]
 
 # ============================================
 # FUNÇÕES AUXILIARES DE PLOTAGEM
@@ -116,7 +116,7 @@ def gerar_bolas_html(elementos, cores=None, tamanho=42):
     html = '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:10px 0;">'
     for i, elem in enumerate(elementos):
         cor = cores[i % len(cores)]
-        html += f'<div class="object-ball" style="width:{tamanho}px;height:{tamanho}px;background:{cor};font-size:{tamanho*0.5}px;">{elem}</div>'
+        html += f'<div class="object-ball" style="width:{tamanho}px;height:{tamanho}px;background:{cor};font-size:{tamanho*0.45}px;">{elem}</div>'
     html += '</div>'
     return html
 
@@ -152,9 +152,9 @@ def plot_permutacoes_grid(perms_list, elementos, max_cols=6):
             fig.add_trace(go.Scatter(
                 x=[pos], y=[0],
                 mode='markers+text',
-                marker=dict(size=35, color=cor, symbol='circle'),
+                marker=dict(size=30, color=cor, symbol='circle'),
                 text=[elem],
-                textfont=dict(size=16, color='white', family='Arial Black'),
+                textfont=dict(size=14, color='white', family='Arial Black'),
                 textposition='middle center',
                 hoverinfo='skip',
                 showlegend=False
@@ -164,8 +164,8 @@ def plot_permutacoes_grid(perms_list, elementos, max_cols=6):
         fig.update_yaxes(range=[-0.5, 0.5], showgrid=False, zeroline=False, showticklabels=False, row=r, col=c)
 
     fig.update_layout(
-        height=120 * rows + 50, showlegend=False, plot_bgcolor='white', paper_bgcolor='white',
-        margin=dict(l=20, r=20, t=40, b=20), title=dict(text=f'Todas as {n} permutações', font=dict(size=16))
+        height=110 * rows + 40, showlegend=False, plot_bgcolor='white', paper_bgcolor='white',
+        margin=dict(l=20, r=20, t=40, b=20), title=dict(text=f'Exibindo {n} permutações', font=dict(size=16))
     )
     return fig
 
@@ -331,17 +331,18 @@ def plot_coloracoes_grid(coloracoes, n_degraus, k_cores, max_cols=6):
 # TÍTULO PRINCIPAL
 # ============================================
 st.markdown('<div class="main-title">🎲 Análise Combinatória Visual</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Explorando princípios de contagem diretamente com gráficos animados</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Explorando princípios de contagem diretamente com gráficos interativos</div>', unsafe_allow_html=True)
 
 # ============================================
 # NAVEGAÇÃO EM ABAS (SEM BARRA LATERAL)
 # ============================================
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "1. Permutação", 
     "2. Permutação c/ Repetição", 
     "3. Arranjo", 
     "4. Combinação", 
-    "5. Coloração (Escada)"
+    "5. Coloração (Escada)",
+    "6. DNA e Combinatória"
 ])
 
 # ============================================
@@ -359,18 +360,20 @@ with tab1:
     
     with col_ctrl:
         st.markdown("<div class='param-box'>", unsafe_allow_html=True)
-        n_perm = st.slider("Quantidade de objetos (n)", 2, 6, 4, key='perm')
+        # Aumentado para permitir até 12 objetos
+        n_perm = st.slider("Quantidade de objetos (n)", 2, 12, 4, key='perm')
         elementos_perm = NOMES[:n_perm]
         st.markdown("**Objetos disponíveis:**")
-        st.markdown(gerar_bolas_html(elementos_perm, tamanho=50), unsafe_allow_html=True)
+        st.markdown(gerar_bolas_html(elementos_perm, tamanho=40), unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col_calc:
         resultado = math.factorial(n_perm)
         st.subheader("🧮 Cálculo Matemático")
         
-        # Correção aplicada com 'rf' para renderizar o operador \times sem falhas
-        st.markdown(rf"$$ P_{{{n_perm}}} = {n_perm}! = {' \times '.join([str(i) for i in range(n_perm, 0, -1)])} = \mathbf{{{resultado}}} $$")
+        # Substituído \times por ponto (\cdot) para evitar erros de renderização do Python
+        operacao_str = ' \cdot '.join([str(i) for i in range(n_perm, 0, -1)])
+        st.markdown(rf"$$ P_{{{n_perm}}} = {n_perm}! = {operacao_str} = \mathbf{{{resultado}}} $$")
         
         st.markdown(f"""
         <div style="font-size:1.1rem;line-height:1.8;">
@@ -381,12 +384,16 @@ with tab1:
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.subheader(f"📋 Todas as {resultado} permutações possíveis")
-    if resultado <= 120:
+    st.subheader(f"📋 Exibição das permutações (Total: {resultado})")
+    if resultado <= 300:
         perms = list(permutations(elementos_perm))
-        fig = plot_permutacoes_grid(perms, elementos_perm, max_cols=6)
+        # Exibe no máximo 36 itens na grade visual para não sobrecarregar
+        fig = plot_permutacoes_grid(perms[:36], elementos_perm, max_cols=6)
         st.plotly_chart(fig, use_container_width=True)
-
+        if resultado > 36:
+            st.info(f"Mostrando as primeiras 36 de {resultado} permutações possíveis.")
+    else:
+        st.warning(f"O número de permutações ({resultado}) é muito grande para exibir graficamente. O fatorial cresce rapidamente!")
 
 # ============================================
 # ABA 2: PERMUTAÇÃO COM REPETIÇÃO
@@ -433,19 +440,15 @@ with tab2:
             $$ P = \frac{{{math.factorial(n_total_rep)}}}{{{math.factorial(n_tipo1)} \cdot {math.factorial(n_tipo2)} \cdot {math.factorial(n_tipo3)}}} = \frac{{{math.factorial(n_total_rep)}}}{{{denominador}}} = \mathbf{{{resultado_rep}}} \text{{ permutações}} $$
             """)
 
-    # --- NOVO BLOCO: VISUALIZAÇÃO DAS PERMUTAÇÕES ÚNICAS ---
+    # VISUALIZAÇÃO DAS PERMUTAÇÕES ÚNICAS (COM DESENHOS)
     st.markdown("---")
     st.subheader(f"📋 Permutações Visualmente Distintas (Total: {resultado_rep})")
     
     if n_total_rep > 0:
-        # Usar set() para remover as repetições visualmente idênticas
         perms_unicas = list(set(permutations(elementos_rep)))
-        perms_unicas.sort() # Ordenar alfabeticamente para ficar organizado
-        
-        # Mapeamento fixo para garantir que A=Vermelho, B=Azul, C=Verde
+        perms_unicas.sort()
         mapa_cores_rep = {"A": "#e74c3c", "B": "#3498db", "C": "#2ecc71"}
         
-        # Limitar a 24 gráficos para não sobrecarregar o navegador
         n_exibir = min(len(perms_unicas), 24) 
         cols = min(6, n_exibir)
         rows = math.ceil(n_exibir / cols)
@@ -465,8 +468,8 @@ with tab2:
                     cor = mapa_cores_rep.get(elem, "#999")
                     fig_rep.add_trace(go.Scatter(
                         x=[pos], y=[0], mode='markers+text',
-                        marker=dict(size=35, color=cor, symbol='circle'),
-                        text=[elem], textfont=dict(size=16, color='white', family='Arial Black'),
+                        marker=dict(size=30, color=cor, symbol='circle'),
+                        text=[elem], textfont=dict(size=14, color='white', family='Arial Black'),
                         textposition='middle center', hoverinfo='skip', showlegend=False
                     ), row=r, col=c)
                     
@@ -474,12 +477,12 @@ with tab2:
                 fig_rep.update_yaxes(range=[-0.5, 0.5], showgrid=False, zeroline=False, showticklabels=False, row=r, col=c)
                 
             fig_rep.update_layout(
-                height=120 * rows + 50, showlegend=False, plot_bgcolor='white', paper_bgcolor='white',
+                height=110 * rows + 40, showlegend=False, plot_bgcolor='white', paper_bgcolor='white',
                 margin=dict(l=20, r=20, t=40, b=20)
             )
             
             if len(perms_unicas) > 24:
-                st.info(f"Mostrando as primeiras 24 de {resultado_rep} permutações. Reduza o número de objetos para ver todas na grade.")
+                st.info(f"Mostrando as primeiras 24 de {resultado_rep} permutações únicas.")
             
             st.plotly_chart(fig_rep, use_container_width=True)
 
@@ -635,10 +638,107 @@ with tab5:
         fig = plot_coloracoes_grid(coloracoes[:min(6, len(coloracoes))], n_degraus, k_cores, max_cols=3)
         st.plotly_chart(fig, use_container_width=True)
 
+# ============================================
+# ABA 6: DNA HUMANO E COMBINATÓRIA
+# ============================================
+with tab6:
+    st.markdown("""
+    <div class="concept-card" style="border-left-color: #00b894;">
+        <b>🧬 A Combinatória da Vida:</b> O DNA humano é composto por um alfabeto de 4 bases nitrogenadas: 
+        <b>Adenina (A)</b>, <b>Timina (T)</b>, <b>Citosina (C)</b> e <b>Guanina (G)</b>. 
+        Elas se agrupam em trincas chamadas <b>côdons</b> para codificar os aminoácidos que formam as proteínas do nosso corpo. 
+        Aqui aplicamos o <b>Arranjo com Repetição</b>!
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_c1, col_c2 = st.columns([1, 2])
+
+    with col_c1:
+        st.markdown("<div class='param-box'>", unsafe_allow_html=True)
+        st.subheader("🔬 Configuração do Códon")
+        tamanho_codor = st.slider("Tamanho da sequência (n posições)", 1, 4, 3, help="Na biologia real, os côdons têm tamanho 3.")
+        
+        st.markdown("---")
+        st.markdown("**Bases Nitrogenadas disponíveis (k = 4):**")
+        st.markdown("""
+        <div style="display:flex; gap:8px; justify-content:center; margin:10px 0;">
+            <div style="background:#e74c3c;color:white;padding:8px 12px;border-radius:8px;font-weight:bold;">A</div>
+            <div style="background:#3498db;color:white;padding:8px 12px;border-radius:8px;font-weight:bold;">T</div>
+            <div style="background:#2ecc71;color:white;padding:8px 12px;border-radius:8px;font-weight:bold;">C</div>
+            <div style="background:#f39c12;color:white;padding:8px 12px;border-radius:8px;font-weight:bold;">G</div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with col_c2:
+        total_combinacoes_dna = 4 ** tamanho_codor
+        st.subheader("🧮 Cálculo Combinatório (Arranjo com Repetição)")
+        
+        st.markdown(f"""
+        Como a ordem importa e <b>as bases podem se repetir</b> (ex: AAA, TTT), usamos a fórmula:
+        """)
+        
+        st.markdown(rf"""
+        $$ \text{{Total}} = k^n = 4^{{{tamanho_codor}}} = \mathbf{{{total_combinacoes_dna}}} \text{{ combinações possíveis}} $$
+        """)
+        
+        if tamanho_codor == 3:
+            st.success("✨ **Fato Biológico:** Com trincas ($n=3$), obtemos exatamente $4^3 = 64$ côdons possíveis no código genético universal, encarregados de codificar os 20 aminoácidos essenciais!")
+        else:
+            st.info(f"Para sequências de tamanho {tamanho_codor}, teríamos {total_combinacoes_dna} combinações moleculares teóricas.")
+
+    st.markdown("---")
+    st.subheader("🧬 Simulação Visual de Sequências de DNA")
+    
+    # Gerar algumas sequências aleatórias de DNA para ilustrar graficamente
+    np.random.seed(100)
+    bases_possiveis = ["A", "T", "C", "G"]
+    cores_bases = {"A": "#e74c3c", "T": "#3498db", "C": "#2ecc71", "G": "#f39c12"}
+    
+    # Criar uma animação/gráfico estático mostrando trincas geradas
+    n_amostras = min(12, total_combinacoes_dna)
+    amostras_geradas = []
+    while len(amostras_geradas) < n_amostras:
+        seq = "".join(np.random.choice(bases_possiveis, size=tamanho_codor))
+        if seq not in amostras_geradas:
+            amostras_geradas.append(seq)
+            
+    cols_dna = min(4, n_amostras)
+    rows_dna = math.ceil(n_amostras / cols_dna)
+    
+    fig_dna = make_subplots(
+        rows=rows_dna, cols=cols_dna,
+        subplot_titles=[f"Côdon #{i+1}" for i in range(n_amostras)],
+        horizontal_spacing=0.08, vertical_spacing=0.2
+    )
+    
+    for idx, seq in enumerate(amostras_geradas):
+        r = idx // cols_dna + 1
+        c = idx % cols_dna + 1
+        
+        for pos, letra in enumerate(seq):
+            cor_b = cores_bases[letra]
+            fig_dna.add_trace(go.Scatter(
+                x=[pos], y=[0], mode='markers+text',
+                marker=dict(size=35, color=cor_b, symbol='square', line=dict(width=2, color='#333')),
+                text=[letra], textfont=dict(size=14, color='white', family='Arial Black'),
+                textposition='middle center', hoverinfo='skip', showlegend=False
+            ), row=r, col=c)
+            
+        fig_dna.update_xaxes(range=[-0.5, tamanho_codor-0.5], showgrid=False, zeroline=False, showticklabels=False, row=r, col=c)
+        fig_dna.update_yaxes(range=[-0.5, 0.5], showgrid=False, zeroline=False, showticklabels=False, row=r, col=c)
+        
+    fig_dna.update_layout(
+        height=110 * rows_dna + 40, showlegend=False, plot_bgcolor='white', paper_bgcolor='white',
+        margin=dict(l=20, r=20, t=40, b=20), title=dict(text='Exemplos de trincas/sequências geradas pelo DNA', font=dict(size=15))
+    )
+    
+    st.plotly_chart(fig_dna, use_container_width=True)
+
 # Rodapé
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #888; font-size: 0.85rem; padding: 1rem;">
-    🎲 <b>Análise Combinatória Visual</b> — Ferramenta educacional para o ensino de Matemática<br>
+    🎲 <b>Análise Combinatória Visual</b> — Ferramenta educacional para o ensino de Matemática e Biologia<br>
 </div>
 """, unsafe_allow_html=True)
