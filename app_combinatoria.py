@@ -422,7 +422,6 @@ with tab2:
             resultado_rep = math.factorial(n_total_rep) // denominador
             
             st.subheader("🧮 Fração em Duas Linhas")
-            # Fração vertical perfeita renderizada com LaTeX
             st.markdown(rf"""
             $$ P_{{{n_total_rep}}}^{{{n_tipo1}, {n_tipo2}, {n_tipo3}}} = \frac{{{n_total_rep}!}}{{{n_tipo1}! \cdot {n_tipo2}! \cdot {n_tipo3}!}} $$
             """)
@@ -431,6 +430,56 @@ with tab2:
             st.markdown(rf"""
             $$ P = \frac{{{math.factorial(n_total_rep)}}}{{{math.factorial(n_tipo1)} \cdot {math.factorial(n_tipo2)} \cdot {math.factorial(n_tipo3)}}} = \frac{{{math.factorial(n_total_rep)}}}{{{denominador}}} = \mathbf{{{resultado_rep}}} \text{{ permutações}} $$
             """)
+
+    # --- NOVO BLOCO: VISUALIZAÇÃO DAS PERMUTAÇÕES ÚNICAS ---
+    st.markdown("---")
+    st.subheader(f"📋 Permutações Visualmente Distintas (Total: {resultado_rep})")
+    
+    if n_total_rep > 0:
+        # Usar set() para remover as repetições visualmente idênticas
+        perms_unicas = list(set(permutations(elementos_rep)))
+        perms_unicas.sort() # Ordenar alfabeticamente para ficar organizado
+        
+        # Mapeamento fixo para garantir que A=Vermelho, B=Azul, C=Verde
+        mapa_cores_rep = {"A": "#e74c3c", "B": "#3498db", "C": "#2ecc71"}
+        
+        # Limitar a 24 gráficos para não sobrecarregar o navegador
+        n_exibir = min(len(perms_unicas), 24) 
+        cols = min(6, n_exibir)
+        rows = math.ceil(n_exibir / cols)
+        
+        if n_exibir > 0:
+            fig_rep = make_subplots(
+                rows=rows, cols=cols,
+                subplot_titles=[f"#{i+1}" for i in range(n_exibir)],
+                horizontal_spacing=0.05, vertical_spacing=0.15
+            )
+            
+            for idx, perm in enumerate(perms_unicas[:n_exibir]):
+                r = idx // cols + 1
+                c = idx % cols + 1
+                
+                for pos, elem in enumerate(perm):
+                    cor = mapa_cores_rep.get(elem, "#999")
+                    fig_rep.add_trace(go.Scatter(
+                        x=[pos], y=[0], mode='markers+text',
+                        marker=dict(size=35, color=cor, symbol='circle'),
+                        text=[elem], textfont=dict(size=16, color='white', family='Arial Black'),
+                        textposition='middle center', hoverinfo='skip', showlegend=False
+                    ), row=r, col=c)
+                    
+                fig_rep.update_xaxes(range=[-0.5, len(perm)-0.5], showgrid=False, zeroline=False, showticklabels=False, row=r, col=c)
+                fig_rep.update_yaxes(range=[-0.5, 0.5], showgrid=False, zeroline=False, showticklabels=False, row=r, col=c)
+                
+            fig_rep.update_layout(
+                height=120 * rows + 50, showlegend=False, plot_bgcolor='white', paper_bgcolor='white',
+                margin=dict(l=20, r=20, t=40, b=20)
+            )
+            
+            if len(perms_unicas) > 24:
+                st.info(f"Mostrando as primeiras 24 de {resultado_rep} permutações. Reduza o número de objetos para ver todas na grade.")
+            
+            st.plotly_chart(fig_rep, use_container_width=True)
 
 # ============================================
 # ABA 3: ARRANJO SIMPLES
